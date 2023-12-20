@@ -11,10 +11,16 @@ void ofApp::setup() {
     zmqVideoRing.setup(bufferSize);
     
     fbo.allocate(1920, 1080);
-    
+
+    oscReceiver.setup("127.0.0.1", 7777);
+    alpha.set("alpha", 0.0f, 0.0f, 1.0f);
+    p0.set("p0", glm::vec2(100, 100), glm::vec2(0), glm::vec2(1920, 1080));
+    p1.set("p1", glm::vec2(400, 400), glm::vec2(0), glm::vec2(1920, 1080));
+    composite.load("shader/passThru.vert", "shader/composite.frag");
+
 #ifdef DECKLINK_OUTPUT
     output.setup();
-    output.start(bmdModeHD1080p2997);
+    output.start(bmdModeHD1080i5994);
 #endif
 }
 
@@ -40,16 +46,23 @@ void ofApp::update() {
         videoInputTexture.loadData(videoInputRing.get(delayedIndex).pix);
         zmqVideoTexture.loadData(zmqVideoRing.get(delayedIndex).pix);
     }
+
+    updateOSC();
+   
 }
 
 void ofApp::draw() {
     
     fbo.begin();
-    if (videoInputTexture.isAllocated()) {
-        videoInputTexture.draw(0,0,1920,1080);
-    }
-    if (zmqVideoTexture.isAllocated()) {
-        zmqVideoTexture.draw(960,0,1920,1080);
+    {
+        composite.begin();
+        composite.setUniform1f("alpha", alpha);
+        composite.setUniform2f("p0", glm::min(p0.get(), p1.get()));
+        composite.setUniform2f("p1", glm::max(p0.get(), p1.get()));
+        composite.setUniform2f("resolution", ofGetWidth(), ofGetHeight());
+        composite.setUniformTexture("effect", zmqVideoTexture, 1);
+        videoInputTexture.draw(0, 0, fbo.getWidth(), fbo.getHeight());
+        composite.end();
     }
     fbo.end();
     
@@ -84,4 +97,25 @@ void ofApp::exit() {
 
 
 void ofApp::keyPressed(int key) {
+}
+
+void ofApp::updateOSC() {
+    if (oscReceiver.hasWaitingMessages()) {
+        ofxOscMessage msg;
+        oscReceiver.getNextMessage(msg);
+        std::string address = msg.getAddress();
+        if (address == "/main/alpha") {
+            alpha.set(msg.getArgAsFloat(0));
+        }
+        else if (address == "/main/p0") {
+            float x = msg.getArgAsFloat(0);
+            float y = msg.getArgAsFloat(1);
+            p0.set(glm::vec2(x, y));
+        }
+        else if (address == "/main/p1") {
+            float x = msg.getArgAsFloat(0);
+            float y = msg.getArgAsFloat(1);
+            p1.set(glm::vec2(x, y));
+        }
+    }
 }
