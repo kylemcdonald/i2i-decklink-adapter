@@ -16,6 +16,12 @@ void ofApp::setup() {
     output.setup();
     output.start(bmdModeHD1080i5994);
 #endif
+
+    oscReceiver.setup("0.0.0.0", 7777);
+    alpha.set("alpha", 1.0f, 0.0f, 1.0f);
+    p0.set("p0", glm::vec2(0, 0), glm::vec2(0), glm::vec2(1920, 1080));
+    p1.set("p1", glm::vec2(1920, 1080), glm::vec2(0), glm::vec2(1920, 1080));
+    composite.load("shader/passThru.vert", "shader/composite.frag");
 }
 
 void ofApp::update() {
@@ -40,20 +46,34 @@ void ofApp::update() {
         videoInputTexture.loadData(videoInputRing.get(delayedIndex).pix);
         zmqVideoTexture.loadData(zmqVideoRing.get(delayedIndex).pix);
     }
+
+    updateOsc();
 }
 
 void ofApp::draw() {
     
-    fbo.begin();
-    if (videoInputTexture.isAllocated()) {
-        videoInputTexture.draw(0,0,1920,1080);
+    
+//    if (videoInputTexture.isAllocated()) {
+//        videoInputTexture.draw(0,0,1920,1080);
+//    }
+//    if (zmqVideoTexture.isAllocated()) {
+////        zmqVideoTexture.draw(960,0,1920,1080);
+//        float x = ofMap(sin(ofGetElapsedTimef()), -1, 1, 0, 1920/2);
+//        zmqVideoTexture.drawSubsection(x,0,1920-x,1080,x/2,0,960-x/2,540);
+//    }
+    if (videoInputTexture.isAllocated() && zmqVideoTexture.isAllocated()) {
+        fbo.begin();
+        ofClear(0);
+        composite.begin();
+        composite.setUniform1f("alpha", alpha);
+        composite.setUniform2f("p0", glm::min(p0.get(), p1.get()));
+        composite.setUniform2f("p1", glm::max(p0.get(), p1.get()));
+        composite.setUniform2f("resolution", ofGetWidth(), ofGetHeight());
+        composite.setUniformTexture("effect", zmqVideoTexture, 1);
+        videoInputTexture.draw(0, 0, fbo.getWidth(), fbo.getHeight());
+        composite.end();
+        fbo.end();
     }
-    if (zmqVideoTexture.isAllocated()) {
-//        zmqVideoTexture.draw(960,0,1920,1080);
-        float x = ofMap(sin(ofGetElapsedTimef()), -1, 1, 0, 1920/2);
-        zmqVideoTexture.drawSubsection(x,0,1920-x,1080,x/2,0,960-x/2,540);
-    }
-    fbo.end();
     
     fbo.draw(0, 0, ofGetWidth(), ofGetHeight());
     
@@ -87,4 +107,25 @@ void ofApp::exit() {
 
 
 void ofApp::keyPressed(int key) {
+}
+
+void ofApp::updateOsc() {
+    if (oscReceiver.hasWaitingMessages()) {
+        ofxOscMessage msg;
+        oscReceiver.getNextMessage(msg);
+        std::string address = msg.getAddress();
+        if (address == "/main/alpha") {
+            alpha.set(msg.getArgAsFloat(0));
+        }
+        else if (address == "/main/p0") {
+            float x = msg.getArgAsFloat(0);
+            float y = msg.getArgAsFloat(1);
+            p0.set(glm::vec2(x, y));
+        }
+        else if (address == "/main/p1") {
+            float x = msg.getArgAsFloat(0);
+            float y = msg.getArgAsFloat(1);
+            p1.set(glm::vec2(x, y));
+        }
+    }
 }
