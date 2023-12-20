@@ -3,21 +3,36 @@
 #include "ofThread.h"
 #include "ofxTurboJpeg.h"
 #include "ofxZmq.h"
+#include "ofxDeckLink.h"
+
 #include "EncodedMessage.h"
 #include "DecodedFrame.h"
 #include "RateTimer.h"
-#include "ofxDeckLink.h"
+#include "ColorConversion.h"
+
+//#define WEBCAM_INPUT
 
 class VideoInput {
 private:
+#ifdef WEBCAM_INPUT
     ofVideoGrabber video;
-//    DeckLinkInput video;
+#else
+    ofxDeckLinkAPI::Input video;
+    ColorConversion color;
+    ofPixels pix_rgb;
+    uint64_t frame_index;
+#endif
     
 public:
     void setup() {
-        video.setup(640, 480, false);
-//        video.setup();
-//        video.start(bmdModeHD1080p30);
+#ifdef WEBCAM_INPUT
+        video.setup(1920, 1080, false);
+#else
+        video.setup(0, false);
+        video.start(bmdModeHD1080i5994);
+        color.setup();
+        frame_index = 0;
+#endif
     }
     
     void update() {
@@ -25,11 +40,26 @@ public:
     }
     
     bool isFrameNew() {
-        return video.isFrameNew();
+        bool newFrame = video.isFrameNew();
+        if (newFrame) {
+            video.markFrameOld();
+            return true;
+        }
+        return false;
     }
     
     ofPixels& getPixels() {
+#ifdef WEBCAM_INPUT
         return video.getPixels();
+#else
+        ofPixels& pix_in = video.getPixels();
+        int width = pix_in.getWidth();
+        int height = pix_in.getHeight();
+        pix_rgb.allocate(width, height, OF_IMAGE_COLOR);
+        int n = width * height;
+        color.cby0cry1_to_rgb(pix_in.getData(), pix_rgb.getData(), n);
+        return pix_rgb;
+#endif
     }
     
     void close() {
@@ -55,7 +85,7 @@ public:
         ofxTurboJpeg turbo;
         
         ofxZmqPublisher pub;
-        pub.bind("tcp://0.0.0.0:5555");
+        pub.bind("tcp://0.0.0.0:5554");
         pub.setSendHighWaterMark(1);
         
         while(isThreadRunning()){
@@ -65,6 +95,10 @@ public:
                 uint64_t time = ofGetElapsedTimef();
                 
                 ofPixels& pix = video.getPixels();
+                
+                // low-quality NN interpolation
+                pix.resize(960, 540);
+                pix.setImageType(OF_IMAGE_COLOR);
                 
                 DecodedFrame frame;
                 frame.index = index;

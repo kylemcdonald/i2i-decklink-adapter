@@ -1,7 +1,7 @@
 #include "ofApp.h"
 
 void ofApp::setup() {
-    latency = 30;
+    latency = 8;
     int bufferSize = latency * 2;
     
     videoInputForwarder.startThread();
@@ -12,11 +12,15 @@ void ofApp::setup() {
     
     fbo.allocate(1920, 1080);
     
-//    output.setup();
-//    output.start(bmdModeHD1080p30);
+#ifdef DECKLINK_OUTPUT
+    output.setup();
+    output.start(bmdModeHD1080p2997);
+#endif
 }
 
 void ofApp::update() {
+//    latency = int(ofMap(mouseX, 0, ofGetWidth(), 1, 10));
+    
     shouldRender = false;
     
     DecodedFrame videoInputFrame;
@@ -42,18 +46,20 @@ void ofApp::draw() {
     
     fbo.begin();
     if (videoInputTexture.isAllocated()) {
-        videoInputTexture.draw(0,0);
+        videoInputTexture.draw(0,0,1920,1080);
     }
     if (zmqVideoTexture.isAllocated()) {
-        zmqVideoTexture.draw(320,0);
+        zmqVideoTexture.draw(960,0,1920,1080);
     }
     fbo.end();
     
-    fbo.draw(0, 0);
+    fbo.draw(0, 0, ofGetWidth(), ofGetHeight());
     
     if (shouldRender) {
         outputTimer.tick();
-//        output.publishTexture(fbo.getTexture());
+#ifdef DECKLINK_OUTPUT
+        output.publishTexture(fbo.getTexture());
+#endif
     }
     
     using TimerInfo = std::pair<std::string, float>;

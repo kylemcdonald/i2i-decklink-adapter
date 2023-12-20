@@ -20,7 +20,7 @@ public:
     void threadedFunction() {
         ofLog() << "starting ZmqVideoReceiver";
         ofxZmqSubscriber sub;
-        sub.connect("tcp://0.0.0.0:5558");
+        sub.connect("tcp://10.0.0.20:5558");
         sub.setReceiveHighWaterMark(1);
         
         ofxMessagePack::Unpacker unpacker;

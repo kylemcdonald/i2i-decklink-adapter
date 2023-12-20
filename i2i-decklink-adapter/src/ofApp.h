@@ -7,6 +7,8 @@
 #include "DecodedFrame.h"
 #include "RateTimer.h"
 
+#define DECKLINK_OUTPUT
+
 class ofApp : public ofBaseApp{
 
 public:
@@ -32,5 +34,7 @@ public:
     ofFbo fbo;
     RateTimer outputTimer;
     
-//    ofxDeckLinkOutput output;
+#ifdef DECKLINK_OUTPUT
+    ofxDeckLinkAPI::Output output;
+#endif
 };
