@@ -6,6 +6,7 @@
 #include "Ring.h"
 #include "DecodedFrame.h"
 #include "RateTimer.h"
+#include "ofxOsc.h"
 
 #define DECKLINK_OUTPUT
 
@@ -18,6 +19,8 @@ public:
 	void exit();
 	void keyPressed(int key);
     
+    void updateOsc();
+
     VideoInputForwarder videoInputForwarder;
     Ring<DecodedFrame> videoInputRing;
     
@@ -37,4 +40,11 @@ public:
 #ifdef DECKLINK_OUTPUT
     ofxDeckLinkAPI::Output output;
 #endif
+
+    ofShader composite;
+    ofxOscReceiver oscReceiver;
+    ofParameter<float> alpha;
+    ofParameter<glm::vec2> p0;
+    ofParameter<glm::vec2> p1;
+
 };
