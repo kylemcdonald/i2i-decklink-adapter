@@ -1,7 +1,7 @@
 #include "ofApp.h"
 
 void ofApp::setup() {
-    latency = 8;
+    latency = 1;
     int bufferSize = latency * 2;
     
     videoInputForwarder.startThread();
@@ -11,13 +11,13 @@ void ofApp::setup() {
     zmqVideoRing.setup(bufferSize);
     
     fbo.allocate(1920, 1080);
-
-    oscReceiver.setup("127.0.0.1", 7777);
+    
+    oscReceiver.setup("0.0.0.0", 7777);
     alpha.set("alpha", 0.0f, 0.0f, 1.0f);
     p0.set("p0", glm::vec2(100, 100), glm::vec2(0), glm::vec2(1920, 1080));
     p1.set("p1", glm::vec2(400, 400), glm::vec2(0), glm::vec2(1920, 1080));
     composite.load("shader/passThru.vert", "shader/composite.frag");
-
+    
 #ifdef DECKLINK_OUTPUT
     output.setup();
     output.start(bmdModeHD1080i5994);
@@ -25,7 +25,7 @@ void ofApp::setup() {
 }
 
 void ofApp::update() {
-    latency = int(ofMap(mouseX, 0, ofGetWidth(), 0, 10));
+//    latency = int(ofMap(mouseX, 0, ofGetWidth(), 0, 10));
     
     shouldRender = false;
     
@@ -46,33 +46,36 @@ void ofApp::update() {
         videoInputTexture.loadData(videoInputRing.get(delayedIndex).pix);
         zmqVideoTexture.loadData(zmqVideoRing.get(delayedIndex).pix);
     }
-
+    
     updateOSC();
-   
 }
 
 void ofApp::draw() {
     
-    fbo.begin();
-    {
-        composite.begin();
-        composite.setUniform1f("alpha", alpha);
-        composite.setUniform2f("p0", glm::min(p0.get(), p1.get()));
-        composite.setUniform2f("p1", glm::max(p0.get(), p1.get()));
-        composite.setUniform2f("resolution", ofGetWidth(), ofGetHeight());
-        composite.setUniformTexture("effect", zmqVideoTexture, 1);
-        videoInputTexture.draw(0, 0, fbo.getWidth(), fbo.getHeight());
-        composite.end();
-    }
-    fbo.end();
-    
-    fbo.draw(0, 0, ofGetWidth(), ofGetHeight());
-    
-    if (shouldRender) {
-        outputTimer.tick();
+    if (videoInputTexture.isAllocated() && zmqVideoTexture.isAllocated()) {
+        fbo.begin();
+        {
+//            composite.begin();
+//            composite.setUniform1f("alpha", alpha);
+//            composite.setUniform2f("p0", glm::min(p0.get(), p1.get()));
+//            composite.setUniform2f("p1", glm::max(p0.get(), p1.get()));
+//            composite.setUniform2f("resolution", ofGetWidth(), ofGetHeight());
+//            composite.setUniformTexture("effect", zmqVideoTexture, 1);
+//            videoInputTexture.draw(0, 0, fbo.getWidth(), fbo.getHeight());
+//            composite.end();
+            
+            zmqVideoTexture.draw(0, 0, fbo.getWidth(), fbo.getHeight());
+        }
+        fbo.end();
+        
+        fbo.draw(0, 0, ofGetWidth(), ofGetHeight());
+        
+        if (shouldRender) {
+            outputTimer.tick();
 #ifdef DECKLINK_OUTPUT
-        output.publishTexture(fbo.getTexture());
+            output.publishTexture(fbo.getTexture());
 #endif
+        }
     }
     
     using TimerInfo = std::pair<std::string, float>;

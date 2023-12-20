@@ -8,7 +8,7 @@
 #include "RateTimer.h"
 #include "ofxOsc.h"
 
-// #define DECKLINK_OUTPUT
+#define DECKLINK_OUTPUT
 
 class ofApp : public ofBaseApp{
 

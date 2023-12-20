@@ -1,5 +1,5 @@
 #version 400
-uniform sampler2DRect input;
+uniform sampler2DRect defaultTexture;
 uniform sampler2DRect effect;
 
 uniform vec2 p0;
@@ -11,7 +11,7 @@ in vec2 vTexCoord;
 out vec4 outputColor;
 
 void main() {
-    vec3 inputColor = texture(input, vTexCoord).rgb;
+    vec3 inputColor = texture(defaultTexture, vTexCoord).rgb;
 
     vec2 size = textureSize(effect);
     vec3 effectColor = texture(effect, vTexCoord / resolution * size).rgb;
