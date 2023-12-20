@@ -92,7 +92,7 @@ public:
             loopTimer.tick();
             video.update();
             if (video.isFrameNew()) {
-                uint64_t time = ofGetElapsedTimef();
+                float time = ofGetElapsedTimef();
                 
                 ofPixels& pix = video.getPixels();
                 

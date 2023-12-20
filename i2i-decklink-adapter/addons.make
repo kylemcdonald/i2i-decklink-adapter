@@ -1,4 +1,5 @@
 ofxDeckLink
 ofxMessagePack
+ofxOsc
 ofxTurboJpeg
 ofxZmq
