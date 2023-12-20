@@ -14,12 +14,12 @@ void ofApp::setup() {
     
 #ifdef DECKLINK_OUTPUT
     output.setup();
-    output.start(bmdModeHD1080p2997);
+    output.start(bmdModeHD1080i5994);
 #endif
 }
 
 void ofApp::update() {
-//    latency = int(ofMap(mouseX, 0, ofGetWidth(), 1, 10));
+    latency = int(ofMap(mouseX, 0, ofGetWidth(), 0, 10));
     
     shouldRender = false;
     
@@ -49,7 +49,9 @@ void ofApp::draw() {
         videoInputTexture.draw(0,0,1920,1080);
     }
     if (zmqVideoTexture.isAllocated()) {
-        zmqVideoTexture.draw(960,0,1920,1080);
+//        zmqVideoTexture.draw(960,0,1920,1080);
+        float x = ofMap(sin(ofGetElapsedTimef()), -1, 1, 0, 1920/2);
+        zmqVideoTexture.drawSubsection(x,0,1920-x,1080,x/2,0,960-x/2,540);
     }
     fbo.end();
     
@@ -72,9 +74,10 @@ void ofApp::draw() {
         {"output", outputTimer.getFrameRate()}
     };
     
-    int y = 20;
+    int y = 40;
+    ofDrawBitmapStringHighlight(ofToString(latency) + " frames latency", 10, 20);
     for (const auto& [name, rate] : timers) {
-        ofDrawBitmapStringHighlight(ofToString(int(rate)) + " fps " + name, 10, y);
+        ofDrawBitmapStringHighlight(ofToString(int(round(rate))) + " fps " + name, 10, y);
         y += 20;
     }
 }
