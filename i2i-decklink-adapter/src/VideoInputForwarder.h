@@ -96,15 +96,14 @@ public:
                 
                 ofPixels& pix = video.getPixels();
                 
-                // low-quality NN interpolation
-                pix.resize(960, 540);
-                pix.setImageType(OF_IMAGE_COLOR);
-                
                 DecodedFrame frame;
                 frame.index = index;
                 frame.timestamp = time;
                 frame.pix = pix;
                 channel.send(frame);
+                
+                // low-quality NN interpolation
+                pix.resize(960, 540);
                 
                 ofBuffer buffer;
                 turbo.save(buffer, pix);
